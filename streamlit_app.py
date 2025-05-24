@@ -2,34 +2,57 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# -------------------- PAGE CONFIG --------------------
-st.set_page_config(layout="wide", page_title="Non_LR-Report Generation")
+# Set page config
+st.set_page_config(layout="wide")
 
-# -------------------- SESSION AUTH --------------------
+# -------------------- Authentication --------------------
 def login():
-    st.title("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if username == "Yoga" and password == "afrin":
-            st.session_state['authenticated'] = True
-            st.session_state['user_role'] = 'admin'
-        elif username == "user" and password == "Stupefy":
-            st.session_state['authenticated'] = True
-            st.session_state['user_role'] = 'QA'
-        else:
-            st.error("Invalid credentials")
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "username" not in st.session_state:
+        st.session_state.username = ""
 
-if 'authenticated' not in st.session_state:
-    login()
-    st.stop()
+    if not st.session_state.logged_in:
+        st.markdown("### 🔐 Login Required")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if username == "admin" and password == "1234":
+                st.session_state.logged_in = True
+                st.session_state.username = "admin"
+                st.rerun()
+            elif username == "bpo" and password == "123":
+                st.session_state.logged_in = True
+                st.session_state.username = "bpo"
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+        st.stop()
 
-# -------------------- STYLING --------------------
+login()
+
+username = st.session_state.username
+
+# -------------------- Styling --------------------
 st.markdown("""
 <style>
-.stApp { background-color: #000000; }
-[data-testid="stSidebar"] { background-color: #111111 !important; }
-[data-testid="stSidebar"] * { color: #FFFFFF !important; }
+/* Main background */
+.stApp {
+    background-color: #000000;
+}
+
+/* Sidebar background */
+[data-testid="stSidebar"] {
+    background-color: #111111 !important;
+}
+
+/* Sidebar text bright white */
+[data-testid="stSidebar"] * {
+    color: #FFFFFF !important;
+    font-weight: normal;
+}
+
+/* Left-aligned Heading */
 .custom-heading {
     font-size: 2rem;
     color: white;
@@ -38,25 +61,42 @@ st.markdown("""
     margin-bottom: 1.5rem;
     margin-left: 2rem;
 }
+
+/* File uploader clean box */
+[data-testid="stFileUploader"] > div {
+    background-color: #222222 !important;
+    padding: 10px !important;
+    border: 1px solid #444 !important;
+    border-radius: 5px;
+}
+
+/* Label and input text */
+label, .stFileUploader, .stNumberInput label, .stSelectbox label {
+    color: white !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------- SIDEBAR MENU --------------------
-if st.session_state['user_role'] == 'admin':
-    st.sidebar.title("Menu")
-    page = st.sidebar.radio("Go to", ["Alltrans", "HDVI MVR", "Truckings IFTA", "Riscom MVR"])
-    st.sidebar.markdown("[GitHub](https://github.com/yourprofile)")
-else:
-    st.sidebar.title("Menu")
-    page = st.sidebar.radio("Go to", ["Alltrans"])
+# -------------------- Sidebar Menu --------------------
+st.sidebar.markdown("### Menu")
+menu_items = ["Alltrans"]
+if username == "admin":
+    menu_items += ["HDVI MVR", "Truckings IFTA", "Riscom MVR"]
+selected_menu = st.sidebar.radio("Select Page", menu_items)
 
-# -------------------- PAGE ROUTING --------------------
-if page == "Alltrans":
+# -------------------- GitHub Link --------------------
+if username == "admin":
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("[🔗 GitHub Profile](https://github.com/your-profile)", unsafe_allow_html=True)
+
+# -------------------- Main Content --------------------
+if selected_menu == "Alltrans":
     st.markdown('<div class="custom-heading">Alltrans Excel Creation</div>', unsafe_allow_html=True)
 
     file1 = st.file_uploader("Upload Client Driver List", type=['xlsx'])
     file2 = st.file_uploader("Upload Output File", type=['xlsx'])
 
+    # ---------- Logic ----------
     def auto_detect_column(columns, keywords):
         for kw in keywords:
             for col in columns:
@@ -73,7 +113,7 @@ if page == "Alltrans":
 
     if file1 and file2:
         skip1 = st.number_input("Rows to skip in File 1", 0, 20, 0)
-        skip2 = st.number_input("Rows to skip in File 2", 0, 20, 3)
+        skip2 = 3  # Default skip 3 rows in file2
 
         df1 = pd.read_excel(file1, skiprows=skip1)
         xls2 = pd.ExcelFile(file2)
@@ -84,6 +124,7 @@ if page == "Alltrans":
         name_col1 = auto_detect_column(df1.columns, ["Driver Name", "Full Name", "Name"])
         date_col1 = auto_detect_column(df1.columns, ["Date of Hire", "Hire Date", "DOH"])
         cdl_col1 = auto_detect_column(df1.columns, ["CDL", "CDL Number", "CDL No", "DL No"])
+
         name_col2 = auto_detect_column(df2_edit.columns, ["Driver Name", "Full Name", "Name of Driver"])
         date_col2 = auto_detect_column(df2_edit.columns, ["Date of Hire", "Hire Date", "DOH"])
 
@@ -111,7 +152,10 @@ if page == "Alltrans":
                         df2_edit.at[idx, date_col2] = match.iloc[0][date_col1]
 
         df2_edit[date_col2] = pd.to_datetime(df2_edit[date_col2], errors='coerce').dt.strftime('%m/%d/%Y')
-        df2_edit.drop(columns=['__name2'], inplace=True)
+
+        # Remove temp column
+        if '__name2' in df2_edit.columns:
+            df2_edit.drop(columns=['__name2'], inplace=True)
 
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -124,6 +168,5 @@ if page == "Alltrans":
                     df_orig.to_excel(writer, sheet_name=sheet, index=False)
 
         st.download_button("Download Excel", output.getvalue(), file_name="output.xlsx")
-
 else:
-    st.markdown(f"<h3 style='color:white'>{page} page coming soon...</h3>", unsafe_allow_html=True)
+    st.markdown("### 🚧 Page under construction...")
