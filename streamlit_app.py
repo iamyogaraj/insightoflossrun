@@ -17,16 +17,16 @@ def login():
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         if st.button("Login"):
-            if username == "admin" and password == "1234":
+            if username == "yogaraj" and password == "afrin":
                 st.session_state.logged_in = True
                 st.session_state.username = "admin"
                 st.rerun()
-            elif username == "bpo" and password == "123":
+            elif username == "user" and password == "Stupefy":
                 st.session_state.logged_in = True
-                st.session_state.username = "bpo"
+                st.session_state.username = "QA"
                 st.rerun()
             else:
-                st.error("Invalid credentials")
+                st.error("Invalid credentials,Better ask Yogaraj")
         st.stop()
 
 login()
