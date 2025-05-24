@@ -19,7 +19,7 @@ def login():
         if st.button("Login"):
             if username == "yogaraj" and password == "afrin":
                 st.session_state.logged_in = True
-                st.session_state.username = "admin"
+                st.session_state.username = "Admin"
                 st.rerun()
             elif username == "user" and password == "Stupefy":
                 st.session_state.logged_in = True
