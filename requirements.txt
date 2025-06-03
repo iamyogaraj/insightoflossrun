@@ -1,2 +1,7 @@
 streamlit
 openai
+streamlit
+pandas
+openpyxl
+fuzzywuzzy
+python-Levenshtein
