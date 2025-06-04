@@ -73,7 +73,9 @@ with st.sidebar:
        
         
     st.markdown("---")
-    st.markdown("Built with ❤️ Yogaraj")
+    st.markdown("Contact:yogarajkrishnanx@gmail.com")
+    st.markdown("---")
+    st.markdown("Github:yogaraj-r")
 
 # Main content
 if menu == "All Trans MVR":
