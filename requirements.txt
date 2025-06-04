@@ -6,3 +6,8 @@ openpyxl
 fuzzywuzzy
 python-Levenshtein
 rapidfuzz	
+streamlit
+scikit-learn
+joblib
+pandas
+openpyxl
