@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 import re
 import io
 from datetime import datetime
@@ -55,7 +55,7 @@ body, .stMarkdown, .stText, .stDataFrame, .stMetric {
 }
 /* Custom button styling */
 .stButton>button {
-    background-color: #4CAF50;
+    background-color: #000000;
     color: white;
     border-radius: 5px;
     padding: 0.5rem 1rem;
@@ -64,90 +64,80 @@ body, .stMarkdown, .stText, .stDataFrame, .stMetric {
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar menu
+# Sidebar menu - FIXED INDENTATION
 with st.sidebar:
     st.markdown("### Menu")
-    menu = st.radio("", ["App", "HDVI MVR", "All Trans MVR", "Truckings IFTA", "Riscom MVR"], 
+    menu = st.radio("", ["App", "HDVI MVR", "All Trans MVR", "Truckings IFTA", "Riscom MVR", "MVR GPT"],
+
+ 
                    label_visibility="collapsed")
     
-       
-        
     st.markdown("---")
-    st.markdown("Contact:yogarajkrishnanx@gmail.com")
-    st.markdown("---")
-    st.markdown("Github:yogaraj-r")
+    st.markdown("Built with ❤️ Yogaraj")
 
 # Main content
 if menu == "All Trans MVR":
     # Left-aligned heading in main page
     st.markdown('<div class="custom-heading">Alltrans Excel Creation</div>', unsafe_allow_html=True)
     
-    # --- Name Matching Functions (Core Logic) ---
+    # --- UPDATED Name Matching Functions (Core Logic) ---
     def normalize_name(name):
-        """Robust name normalization handling various formats"""
+        """Enhanced name normalization with title removal and initials handling"""
         if pd.isna(name) or not name:
             return []
-        
-        # Clean and standardize name
         name = str(name).lower()
-        name = re.sub(r'[^a-z\s]', '', name)  # Remove non-alphabetic characters
-        name = re.sub(r'\s+', ' ', name).strip()  # Normalize spaces
-        
-        # Split into parts
+        # Remove common prefixes/suffixes
+        name = re.sub(r'\b(mr|mrs|ms|dr|jr|sr|iii|ii|iv)\b', '', name)
+        # Remove non-alpha chars except spaces
+        name = re.sub(r'[^a-z\s]', '', name)
+        # Normalize spaces
+        name = re.sub(r'\s+', ' ', name).strip()
         parts = name.split()
         if not parts:
             return []
-        
-        # Create multiple normalization formats
+
         formats = []
-        
-        # Format 1: First + Last
+        # Full name normal
+        formats.append(' '.join(parts))
+        # First last and last first formats
         if len(parts) > 1:
             formats.append(f"{parts[0]} {parts[-1]}")
-        
-        # Format 2: Last + First
-        if len(parts) > 1:
             formats.append(f"{parts[-1]} {parts[0]}")
-        
-        # Format 3: First + Last (concatenated)
-        if len(parts) > 1:
             formats.append(f"{parts[0]}{parts[-1]}")
-        
-        # Format 4: Last + First (concatenated)
-        if len(parts) > 1:
             formats.append(f"{parts[-1]}{parts[0]}")
-        
-        # Format 5: Full name
-        formats.append(' '.join(parts))
-        
-        return formats
+
+        # Initial-based formats if middle names exist
+        if len(parts) > 2:
+            first = parts[0]
+            last = parts[-1]
+            initials = ''.join([p[0] for p in parts[1:-1]])
+            formats.append(f"{first} {initials} {last}")
+            formats.append(f"{first} {initials}{last}")
+            formats.append(f"{first}{initials} {last}")
+            formats.append(f"{first}{initials}{last}")
+
+        # Remove duplicates
+        return list(set(formats))
 
     def names_match(name1, name2):
-        """Comprehensive name matching using multiple strategies"""
+        """Stricter matching with multiple fuzzy strategies"""
         if pd.isna(name1) or pd.isna(name2) or not name1 or not name2:
             return False
-        
-        # Get normalized formats
         formats1 = normalize_name(name1)
         formats2 = normalize_name(name2)
-        
-        # Compare all format combinations
         for f1 in formats1:
             for f2 in formats2:
-                # Direct match
                 if f1 == f2:
                     return True
-                
-                # Fuzzy match with 85% threshold
-                if fuzz.token_set_ratio(f1, f2) >= 85:
+                if fuzz.token_set_ratio(f1, f2) >= 95:
                     return True
-                
-                # Partial match with 90% threshold
-                if fuzz.partial_ratio(f1, f2) >= 90:
+                if fuzz.partial_ratio(f1, f2) >= 96:
                     return True
-        
+                if fuzz.token_sort_ratio(f1, f2) >= 98:
+                    return True
         return False
 
+    # --- REST OF THE CODE ---
     def get_valid_column(df, purpose, default_names, required=True):
         """Find column with fuzzy matching, using defaults if possible"""
         # First try exact matches to default names
@@ -170,7 +160,7 @@ if menu == "All Trans MVR":
     # --- Driver Matching Tool ---
     def driver_matching_app():
         # File upload section
-        st.header("📂 Step 1: Upload Files")
+        st.header("Upload Files")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -184,7 +174,7 @@ if menu == "All Trans MVR":
             return
         
         # Configuration section
-        st.header("⚙️ Step 2: Configuration")
+        st.header("Configuration...")
         
         # Default row skipping
         driver_skip = st.number_input("Rows to skip in DRIVER file", min_value=0, value=0)
@@ -205,7 +195,7 @@ if menu == "All Trans MVR":
             output = pd.read_excel(output_file, sheet_name=sheet, skiprows=output_skip)
             
             # Column mapping section
-            st.header("🗂️ Step 3: Column Mapping")
+            st.header("Column Mapping Running...")
             st.info("Map columns between files. The tool will try to auto-detect columns.")
             
             # Driver file columns
@@ -254,7 +244,7 @@ if menu == "All Trans MVR":
                     output[col] = ""
             
             # Process button
-            if st.button("🚀 Start Matching", use_container_width=True):
+            if st.button("Process File", use_container_width=True):
                 with st.spinner("Matching names..."):
                     # Perform matching
                     match_count = 0
@@ -292,11 +282,8 @@ if menu == "All Trans MVR":
                                 matched = True
                                 break
                         
-                        if not matched:
-                            existing_notes = str(row.get(output_notes_col, ""))
-                            if "MVR MISSING" not in existing_notes:
-                                new_notes = f"{existing_notes} (MVR MISSING)" if existing_notes else "MVR MISSING"
-                                output.at[idx, output_notes_col] = new_notes.strip()
+                        # REMOVED: MVR MISSING marking for existing rows
+                        # We'll only add missing drivers at the end
                         
                         # Update progress
                         progress = (idx + 1) / total_original
@@ -331,7 +318,7 @@ if menu == "All Trans MVR":
                         added_count = 0
                     
                     # Generate timestamped filename
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    timestamp = datetime.now().strftime("%m%d%Y")
                     result_filename = f"Driver_Matching_Result_{timestamp}.xlsx"
                     
                     # Save to BytesIO for download
@@ -347,7 +334,7 @@ if menu == "All Trans MVR":
                     
                     # Results Summary
                     total_final = len(output)
-                    st.success("✅ Matching complete!")
+                    st.success("Matching complete!")
                     
                     # Show summary
                     st.subheader("📊 Results Summary")
@@ -367,7 +354,7 @@ if menu == "All Trans MVR":
                     
                     # Download button
                     st.download_button(
-                        label="📥 Download Excel",
+                        label="Download Excel",
                         data=output_bytes,
                         file_name=result_filename,
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -400,3 +387,43 @@ elif menu == "Truckings IFTA":
 elif menu == "Riscom MVR":
     st.markdown('<div class="custom-heading">Riscom MVR Tool</div>', unsafe_allow_html=True)
     st.write("Riscom MVR tool will be available soon.")
+elif menu == "MVR GPT":
+    import pandas as pd
+    from fuzzywuzzy import process
+    import streamlit as st
+
+    @st.cache_data
+    def load_data():
+        try:
+            df = pd.read_excel("violations.xlsx", sheet_name="Sheet1")
+            return df
+        except Exception as e:
+            st.error(f"❌ Failed to load Excel file: {e}")
+            return pd.DataFrame()  # return empty dataframe on error
+
+    df = load_data()
+
+    if df.empty:
+        st.stop()
+
+    user_input = st.text_input("Enter Violation Description:")
+
+    if user_input:
+        if 'Violation Description' not in df.columns or 'Category' not in df.columns:
+            st.error("❗Missing required columns ('Violation Description' or 'Category') in Excel file.")
+        else:
+            choices = df['Violation Description'].dropna().tolist()
+            match, score = process.extractOne(user_input, choices)
+
+            threshold = 70
+            if score >= threshold:
+                category = df.loc[df['Violation Description'] == match, 'Category'].values[0]
+                st.success(f"Partial match: '{match}' (Confidence: {score}), If you have doubt ask QC team")
+                if score < threshold:
+                    print("If you have doubt on this ask QC team once")
+                st.info(f"Violation category: **{category}**")
+            else:
+
+                st.warning("🤖 Hmm... that one's tricky! Might wanna reach out to the QC wizards 🧙‍♂️✨")
+
+                st.warning("Better reach out to the QC Team!✨")
